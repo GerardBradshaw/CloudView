@@ -5,8 +5,6 @@ buildscript {
         google()
         jcenter()
     }
-    
-    group = 'com.github.GerardBradshaw'
 
     dependencies {
         classpath "com.android.tools.build:gradle:4.1.2"
@@ -21,7 +19,10 @@ allprojects {
     repositories {
         google()
         jcenter()
+        maven {url "https://jitpack.io" }
     }
+
+    group = 'com.github.GerardBradshaw'
 }
 
 task clean(type: Delete) {

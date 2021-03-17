@@ -33,7 +33,45 @@ class MainActivity : AppCompatActivity() {
     initViewDefaults()
     initListeners()
 
+    minSizeView.text = cloudView.minCloudSize.toString()
+    maxSizeView.text = cloudView.maxCloudSize.toString()
 
+    cloudView.startAnimation()
+  }
+
+  private fun locateViews() {
+    cloudView = findViewById(R.id.cloud_view)
+
+    cloudCountSeekBar = findViewById(R.id.cloud_count_seek_bar)
+    cloudCountView = findViewById(R.id.cloud_count_text_view)
+
+    minSizeSeekBar = findViewById(R.id.min_size_seek_bar)
+    minSizeView = findViewById(R.id.min_size_text_view)
+
+    maxSizeSeekBar = findViewById(R.id.max_size_seek_bar)
+    maxSizeView = findViewById(R.id.max_size_text_view)
+
+    passTimeEditText = findViewById(R.id.pass_time_edit_text)
+    varianceTimeEditText = findViewById(R.id.pass_variance_edit_text)
+  }
+
+  private fun initViewDefaults() {
+    cloudView.setDefaults()
+
+    cloudCountSeekBar.progress = cloudView.cloudCount
+    cloudCountView.text = "${cloudView.cloudCount}"
+
+    minSizeSeekBar.progress = cloudView.minCloudSize
+    minSizeView.text = "${cloudView.minCloudSize}"
+
+    maxSizeSeekBar.progress = cloudView.maxCloudSize
+    maxSizeView.text = "${cloudView.maxCloudSize}"
+
+    passTimeEditText.hint = "${cloudView.basePassTimeMs}"
+    varianceTimeEditText.hint = "${cloudView.passTimeVarianceMs }"
+  }
+
+  private fun initListeners() {
     cloudCountSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
       override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
         cloudCountView.text = "$progress"
@@ -46,10 +84,6 @@ class MainActivity : AppCompatActivity() {
         cloudView.setCloudCount(seekBar?.progress ?: 0)
       }
     })
-
-
-    minSizeView.text = cloudView.minCloudSize.toString()
-    maxSizeView.text = cloudView.maxCloudSize.toString()
 
     findViewById<Button>(R.id.start_button).setOnClickListener {
       cloudView.startAnimation()
@@ -113,42 +147,6 @@ class MainActivity : AppCompatActivity() {
         cloudView.maxCloudSize = seekBar?.progress ?: 1
       }
     })
-  }
-
-  private fun locateViews() {
-    cloudView = findViewById(R.id.cloud_view)
-
-    cloudCountSeekBar = findViewById(R.id.cloud_count_seek_bar)
-    cloudCountView = findViewById(R.id.cloud_count_text_view)
-
-    minSizeSeekBar = findViewById(R.id.min_size_seek_bar)
-    minSizeView = findViewById(R.id.min_size_text_view)
-
-    maxSizeSeekBar = findViewById(R.id.max_size_seek_bar)
-    maxSizeView = findViewById(R.id.max_size_text_view)
-
-    passTimeEditText = findViewById(R.id.pass_time_edit_text)
-    varianceTimeEditText = findViewById(R.id.pass_variance_edit_text)
-  }
-
-  private fun initViewDefaults() {
-    cloudView.setDefaults()
-
-    cloudCountSeekBar.progress = cloudView.cloudCount
-    cloudCountView.text = "${cloudView.cloudCount}"
-
-    minSizeSeekBar.progress = cloudView.minCloudSize
-    minSizeView.text = "${cloudView.minCloudSize}"
-
-    maxSizeSeekBar.progress = cloudView.maxCloudSize
-    maxSizeView.text = "${cloudView.maxCloudSize}"
-
-    passTimeEditText.hint = "${cloudView.basePassTimeMs}"
-    varianceTimeEditText.hint = "${cloudView.passTimeVarianceMs }"
-  }
-
-  private fun initListeners() {
-
   }
 
   companion object {

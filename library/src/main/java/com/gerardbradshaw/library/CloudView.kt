@@ -26,9 +26,14 @@ class CloudView : FrameLayout {
   constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
   private var isDrawn = false
-  private val postDrawRunnables = LinkedList<Runnable>()
+  private var isPreDrawStartAnimationRequested = false
+  private var isPreDrawResizeRequested = false
+  private var isPreDrawCloudSpawnRequested = false
+  private var isPreDrawCloudCountChangeRequested = false
+  private var preDrawRequestedCloudCount = 0
+
   private val imageViews = HashSet<ImageView>()
-  private var sizeRange = 50..150
+  private var sizeRange = 300..500
 
   private var imageResId: Int? = R.drawable.ic_cloud
   private var imageBitmap: Bitmap? = null
@@ -38,12 +43,17 @@ class CloudView : FrameLayout {
    * Sets all values to their defaults. This is not necessary as a first step if no values have
    * been changed.
    */
-  fun setDefaults(): CloudView {
-    return setImage(R.drawable.ic_cloud)
-      .setSizeRange(50..150)
-      .setBasePassTime(10000)
-      .setCloudCount(10)
-      .setPassTimeVariance(2000)
+  fun setDefaults() {
+    val wasAnimating = isAnimating
+    stopAnimation()
+
+    setImage(R.drawable.ic_cloud)
+    setSizeRange(300..500)
+    setBasePassTime(10000)
+    setCloudCount(10)
+    setPassTimeVariance(2000)
+
+    if (wasAnimating) startAnimation()
   }
 
   /**
@@ -51,44 +61,50 @@ class CloudView : FrameLayout {
    */
   var cloudCount: Int = 10
     set(value) {
-      removeAllViews()
-      imageViews.clear()
       field = value
-      spawnClouds(value)
-      if (isAnimating) forceStartAnimation()
+
+      if (isDrawn) {
+        removeAllViews()
+        imageViews.clear()
+        spawnClouds(value)
+        if (isAnimating) forceStartAnimation()
+      } else {
+        preDrawRequestedCloudCount = value
+        isPreDrawCloudCountChangeRequested = true
+      }
     }
 
   private fun spawnClouds(n: Int) {
     if (n == 0) return
-    for (i in 1..n) spawnSingleCloud()
-  }
 
-  private fun spawnSingleCloud() {
-    val runnable = Runnable {
-      val cloud = ImageView(context, null)
+    preDrawRequestedCloudCount = n
 
-      val resId = imageResId
-      val bitmap = imageBitmap
-      val drawable = imageDrawable
+    if (isDrawn) {
+      for (i in 1..preDrawRequestedCloudCount) {
+        val cloud = ImageView(context, null)
 
-      when {
-        resId != null -> cloud.setImageResource(imageResId!!)
-        bitmap != null -> cloud.setImageBitmap(bitmap)
-        drawable != null -> cloud.setImageDrawable(drawable)
-        else -> cloud.setImageResource(R.drawable.ic_cloud)
+        val resId = imageResId
+        val bitmap = imageBitmap
+        val drawable = imageDrawable
+
+        when {
+          resId != null -> cloud.setImageResource(imageResId!!)
+          bitmap != null -> cloud.setImageBitmap(bitmap)
+          drawable != null -> cloud.setImageDrawable(drawable)
+          else -> cloud.setImageResource(R.drawable.ic_cloud)
+        }
+
+        cloud.x = width.toFloat()
+        cloud.y = height * Random.nextFloat() - cloud.height
+        Log.d(TAG, "spawnCloud: cloud is at (${cloud.x}, ${cloud.y})")
+
+        val dimen = Random.nextInt(sizeRange.first, sizeRange.last)
+        addView(cloud, LayoutParams(dimen, dimen))
+        imageViews.add(cloud)
       }
-
-      cloud.x = width.toFloat()
-      cloud.y = height * Random.nextFloat() - cloud.height
-      Log.d(TAG, "spawnCloud: cloud is at (${cloud.x}, ${cloud.y})")
-
-      val dimen = Random.nextInt(sizeRange.first, sizeRange.last)
-      addView(cloud, LayoutParams(dimen, dimen))
-      imageViews.add(cloud)
+    } else {
+      isPreDrawCloudSpawnRequested = true
     }
-
-    if (isDrawn) runnable.run()
-    else postDrawRunnables.add(runnable)
   }
 
   /**
@@ -148,8 +164,16 @@ class CloudView : FrameLayout {
     viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
       override fun onGlobalLayout() {
         if (isDrawn) {
-          for (runnable in postDrawRunnables) runnable.run()
-          postDrawRunnables.clear()
+
+          if (isPreDrawCloudCountChangeRequested && imageViews.size != preDrawRequestedCloudCount){
+            cloudCount = preDrawRequestedCloudCount
+          }
+          else if (isPreDrawCloudSpawnRequested) {
+            spawnClouds(preDrawRequestedCloudCount)
+          }
+
+          if (isPreDrawResizeRequested) setSizeRange(sizeRange)
+          if (isPreDrawStartAnimationRequested) startAnimation()
           viewTreeObserver.removeOnGlobalLayoutListener(this)
         }
       }
@@ -168,15 +192,16 @@ class CloudView : FrameLayout {
    * Sets [minCloudSize] and [maxCloudSize] in one function call. Returns the view for chaining.
    */
   fun setSizeRange(range: IntRange): CloudView {
-    val min = min(range.first, range.last)
-    val max = max(range.first, range.last)
-    if (min == max) throw IllegalArgumentException()
+    if (range != sizeRange) {
+      val min = min(range.first, range.last)
+      val max = max(range.first, range.last)
+      if (min == max) throw IllegalArgumentException()
 
-    sizeRange = max(min, 0)..max(max, 0)
-    val runnable = Runnable { randomizeCloudSizes() }
+      sizeRange = max(min, 0)..max(max, 0)
+    }
 
-    if (isDrawn) runnable.run()
-    else postDrawRunnables.add(runnable)
+    if (isDrawn) randomizeCloudSizes()
+    else isPreDrawResizeRequested = true
 
     return this
   }
@@ -231,7 +256,7 @@ class CloudView : FrameLayout {
     imageResId = null
     imageDrawable = null
 
-    rebuild()
+    restartAnimation()
     return this
   }
 
@@ -243,7 +268,7 @@ class CloudView : FrameLayout {
     imageBitmap = null
     imageDrawable = null
 
-    rebuild()
+    restartAnimation()
     return this
   }
 
@@ -255,59 +280,73 @@ class CloudView : FrameLayout {
     imageBitmap = null
     imageResId = null
 
-    rebuild()
+    restartAnimation()
     return this
   }
 
-  private fun rebuild() {
+  private fun restartAnimation() {
+    val wasAnimating = isAnimating
     stopAnimation()
-    if (isAnimating) startAnimation()
+    if (wasAnimating) startAnimation()
   }
 
   /**
    * Starts moving clouds across the view.
    */
   fun startAnimation() {
-    if (isAnimating || childCount == 0) return
+    if (isAnimating) return
     forceStartAnimation()
   }
 
   private fun forceStartAnimation() {
-    isAnimating = true
-    for (image in imageViews) { animateCloud(image) }
+    if (isDrawn) {
+      if (childCount == 0) {
+        Log.e(TAG, "forceStartAnimation: no clouds; nothing to animate")
+        return
+      }
+
+      animateClouds()
+      isAnimating = true
+
+    } else {
+      isPreDrawStartAnimationRequested = true
+    }
   }
 
-  private fun animateCloud(cloud: ImageView) {
-    val runnable = Runnable {
-      cloud.x = width.toFloat()
-      cloud.y = height * Random.nextFloat() - cloud.height
-
-      ObjectAnimator.ofFloat(cloud, "translationX", -cloud.width.toFloat()).apply {
-        duration = (basePassTimeMs + passTimeVarianceMs * Random.nextFloat()).toLong()
-        startDelay = ((basePassTimeMs + passTimeVarianceMs / 2) * Random.nextFloat()).toLong()
-        interpolator = LinearInterpolator()
-
-        doOnStart {
-          if (isFadeInEnabled) {
-            with(AlphaAnimation(0.0f, 1.0f)) {
-              this.duration = 1000
-              cloud.startAnimation(this)
-            }
-          }
-        }
-
-        doOnEnd {
-          if (imageViews.contains(cloud) && isAnimating) {
-            animateCloud(cloud)
-          }
-        }
-
-        start()
-      }
+  private fun animateClouds() {
+    for (image in imageViews) {
+      animateSingleCloud(image)
     }
+  }
 
-    if (isDrawn) runnable.run()
-    else postDrawRunnables.add(runnable)
+  private fun animateSingleCloud(cloud: ImageView) {
+    cloud.x = width.toFloat()
+    cloud.y = height * Random.nextFloat()
+
+    val cloudWidth = cloud.layoutParams.width.toFloat()
+
+    ObjectAnimator.ofFloat(cloud, "translationX", -cloudWidth).apply {
+      duration = (basePassTimeMs + passTimeVarianceMs * Random.nextFloat()).toLong()
+      startDelay = ((basePassTimeMs + passTimeVarianceMs) * Random.nextFloat()).toLong()
+      interpolator = LinearInterpolator()
+
+      doOnStart {
+        if (isFadeInEnabled) {
+          with(AlphaAnimation(0.0f, 1.0f)) {
+            this.duration = 1000
+            cloud.startAnimation(this)
+          }
+        }
+      }
+
+      doOnEnd {
+        if (imageViews.contains(cloud) && isAnimating) {
+          animateSingleCloud(cloud)
+        }
+      }
+
+      start()
+    }
   }
 
   /**
@@ -318,8 +357,6 @@ class CloudView : FrameLayout {
     setCloudCount(cloudCount)
   }
 
-
-
   override fun onDraw(canvas: Canvas?) {
     super.onDraw(canvas)
     isDrawn = true
@@ -328,7 +365,6 @@ class CloudView : FrameLayout {
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
     stopAnimation()
-    isDrawn = false
   }
 
   companion object {

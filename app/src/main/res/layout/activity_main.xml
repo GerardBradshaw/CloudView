@@ -62,8 +62,8 @@
             <SeekBar
                 android:id="@+id/min_size_seek_bar"
                 android:layout_width="0dp"
-                android:min="25"
-                android:max="100"
+                android:min="200"
+                android:max="400"
                 android:layout_weight="1"
                 android:layout_height="wrap_content" />
 
@@ -88,7 +88,7 @@
             <SeekBar
                 android:id="@+id/max_size_seek_bar"
                 android:layout_width="0dp"
-                android:min="101"
+                android:min="400"
                 android:max="500"
                 android:layout_weight="1"
                 android:layout_height="wrap_content" />

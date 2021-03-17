@@ -22,7 +22,7 @@ allprojects {
         maven {url "https://jitpack.io" }
     }
 
-    group = 'com.github.GerardBradshaw'
+//    group = 'com.github.GerardBradshaw'
 }
 
 task clean(type: Delete) {

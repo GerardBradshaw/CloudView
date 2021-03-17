@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <com.gerardbradshaw.library.CloudView
+        android:id="@+id/cloud_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#03A9F4"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:padding="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Clouds:"/>
+
+            <SeekBar
+                android:id="@+id/cloud_count_seek_bar"
+                android:layout_width="0dp"
+                android:min="1"
+                android:max="100"
+                android:layout_weight="1"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/cloud_count_text_view"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="1"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:padding="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Min size:"/>
+
+            <SeekBar
+                android:id="@+id/min_size_seek_bar"
+                android:layout_width="0dp"
+                android:min="25"
+                android:max="100"
+                android:layout_weight="1"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/min_size_text_view"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="25"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:padding="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Max size:"/>
+
+            <SeekBar
+                android:id="@+id/max_size_seek_bar"
+                android:layout_width="0dp"
+                android:min="101"
+                android:max="500"
+                android:layout_weight="1"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/max_size_text_view"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="101"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:padding="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pass time (ms):"/>
+
+            <EditText
+                android:inputType="number"
+                android:id="@+id/pass_time_edit_text"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:padding="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pass variance (ms):"/>
+
+            <EditText
+                android:inputType="number"
+                android:id="@+id/pass_variance_edit_text"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_margin="12dp"
+                android:id="@+id/start_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start"/>
+
+            <Button
+                android:layout_margin="12dp"
+                android:id="@+id/stop_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stop"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

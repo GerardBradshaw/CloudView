@@ -26,32 +26,28 @@ class CloudView : FrameLayout {
   constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
   private var isDrawn = false
-  private var isPreDrawStartAnimationRequested = false
-  private var isPreDrawResizeRequested = false
-  private var isPreDrawCloudSpawnRequested = false
-  private var isPreDrawCloudCountChangeRequested = false
-  private var preDrawRequestedCloudCount = 0
-
+  private var isAnimating = false
+  private var requestedSizeRange = 300..500
   private val imageViews = HashSet<ImageView>()
-  private var sizeRange = 300..500
 
   private var imageResId: Int? = R.drawable.ic_cloud
   private var imageBitmap: Bitmap? = null
   private var imageDrawable: Drawable? = null
+
 
   /**
    * Sets all values to their defaults. This is not necessary as a first step if no values have
    * been changed.
    */
   fun setDefaults() {
-    val wasAnimating = isAnimating
-    stopAnimation()
+    val wasAnimating = isAnimationRequested
+    stopAnimationsUntilRespawn()
 
-    setImage(R.drawable.ic_cloud)
-    setSizeRange(300..500)
-    setBasePassTime(10000)
+    imageResId = R.drawable.ic_cloud
+    imageBitmap = null
+    imageDrawable = null
+    requestedSizeRange = 300..500
     setCloudCount(10)
-    setPassTimeVariance(2000)
 
     if (wasAnimating) startAnimation()
   }
@@ -62,48 +58,37 @@ class CloudView : FrameLayout {
   var cloudCount: Int = 10
     set(value) {
       field = value
-
-      if (isDrawn) {
-        removeAllViews()
-        imageViews.clear()
-        spawnClouds(value)
-        if (isAnimating) forceStartAnimation()
-      } else {
-        preDrawRequestedCloudCount = value
-        isPreDrawCloudCountChangeRequested = true
-      }
+      if (isDrawn) respawnClouds()
     }
 
-  private fun spawnClouds(n: Int) {
-    if (n == 0) return
+  private fun respawnClouds() {
+    resetClouds(cloudCount)
+    if (isAnimationRequested) forceStartAnimation()
+  }
 
-    preDrawRequestedCloudCount = n
+  private fun resetClouds(cloudCount: Int) {
+    removeAllViews()
+    imageViews.clear()
+    for (i in 0 until cloudCount) {
+      val cloud = ImageView(context, null)
 
-    if (isDrawn) {
-      for (i in 1..preDrawRequestedCloudCount) {
-        val cloud = ImageView(context, null)
+      val resId = imageResId
+      val bitmap = imageBitmap
+      val drawable = imageDrawable
 
-        val resId = imageResId
-        val bitmap = imageBitmap
-        val drawable = imageDrawable
-
-        when {
-          resId != null -> cloud.setImageResource(imageResId!!)
-          bitmap != null -> cloud.setImageBitmap(bitmap)
-          drawable != null -> cloud.setImageDrawable(drawable)
-          else -> cloud.setImageResource(R.drawable.ic_cloud)
-        }
-
-        cloud.x = width.toFloat()
-        cloud.y = height * Random.nextFloat() - cloud.height
-        Log.d(TAG, "spawnCloud: cloud is at (${cloud.x}, ${cloud.y})")
-
-        val dimen = Random.nextInt(sizeRange.first, sizeRange.last)
-        addView(cloud, LayoutParams(dimen, dimen))
-        imageViews.add(cloud)
+      when {
+        resId != null -> cloud.setImageResource(imageResId!!)
+        bitmap != null -> cloud.setImageBitmap(bitmap)
+        drawable != null -> cloud.setImageDrawable(drawable)
+        else -> cloud.setImageResource(R.drawable.ic_cloud)
       }
-    } else {
-      isPreDrawCloudSpawnRequested = true
+
+      cloud.x = width.toFloat()
+      cloud.y = height * Random.nextFloat() - cloud.height
+
+      val dimen = Random.nextInt(requestedSizeRange.first, requestedSizeRange.last)
+      addView(cloud, LayoutParams(dimen, dimen))
+      imageViews.add(cloud)
     }
   }
 
@@ -112,9 +97,9 @@ class CloudView : FrameLayout {
    * maxCloudSize. Note that new cloud sizes are calculated and shown immediately.
    */
   var maxCloudSize: Int
-    get() = sizeRange.last
+    get() = requestedSizeRange.last
     set(value) {
-      setSizeRange(sizeRange.first..value)
+      setSizeRange(requestedSizeRange.first..value)
     }
 
   /**
@@ -122,9 +107,9 @@ class CloudView : FrameLayout {
    * [maxCloudSize]. Note that new cloud sizes are calculated and shown immediately.
    */
   var minCloudSize: Int
-    get() = sizeRange.first
+    get() = requestedSizeRange.first
     set(value) {
-      setSizeRange(value..sizeRange.last)
+      setSizeRange(value..requestedSizeRange.last)
     }
 
   /**
@@ -152,7 +137,7 @@ class CloudView : FrameLayout {
   /**
    * True if cloud animations are on, false otherwise.
    */
-  var isAnimating = false
+  var isAnimationRequested = false
     private set
 
   /**
@@ -164,16 +149,7 @@ class CloudView : FrameLayout {
     viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
       override fun onGlobalLayout() {
         if (isDrawn) {
-
-          if (isPreDrawCloudCountChangeRequested && imageViews.size != preDrawRequestedCloudCount){
-            cloudCount = preDrawRequestedCloudCount
-          }
-          else if (isPreDrawCloudSpawnRequested) {
-            spawnClouds(preDrawRequestedCloudCount)
-          }
-
-          if (isPreDrawResizeRequested) setSizeRange(sizeRange)
-          if (isPreDrawStartAnimationRequested) startAnimation()
+          respawnClouds()
           viewTreeObserver.removeOnGlobalLayoutListener(this)
         }
       }
@@ -192,16 +168,15 @@ class CloudView : FrameLayout {
    * Sets [minCloudSize] and [maxCloudSize] in one function call. Returns the view for chaining.
    */
   fun setSizeRange(range: IntRange): CloudView {
-    if (range != sizeRange) {
+    if (range != requestedSizeRange) {
       val min = min(range.first, range.last)
       val max = max(range.first, range.last)
       if (min == max) throw IllegalArgumentException()
 
-      sizeRange = max(min, 0)..max(max, 0)
+      requestedSizeRange = max(min, 0)..max(max, 0)
     }
 
     if (isDrawn) randomizeCloudSizes()
-    else isPreDrawResizeRequested = true
 
     return this
   }
@@ -209,7 +184,7 @@ class CloudView : FrameLayout {
   private fun randomizeCloudSizes() {
     for (view in imageViews) {
       view.updateLayoutParams {
-        val dimen = Random.nextInt(sizeRange.first, sizeRange.last)
+        val dimen = Random.nextInt(requestedSizeRange.first, requestedSizeRange.last)
         this.width = dimen
         this.height = dimen
       }
@@ -220,16 +195,16 @@ class CloudView : FrameLayout {
    * Setter for [maxCloudSize] which returns the view for chaining.
    */
   fun setMaxSize(max: Int): CloudView {
-    return if (max < sizeRange.first) setSizeRange(max..max)
-    else setSizeRange(sizeRange.first..max)
+    return if (max < requestedSizeRange.first) setSizeRange(max..max)
+    else setSizeRange(requestedSizeRange.first..max)
   }
 
   /**
    * Setter for [minCloudSize] which returns the view for chaining.
    */
   fun setMinSize(min: Int): CloudView {
-    return if (min > sizeRange.last) setSizeRange(min..min)
-    else setSizeRange(min..sizeRange.last)
+    return if (min > requestedSizeRange.last) setSizeRange(min..min)
+    else setSizeRange(min..requestedSizeRange.last)
   }
 
   /**
@@ -285,8 +260,8 @@ class CloudView : FrameLayout {
   }
 
   private fun restartAnimation() {
-    val wasAnimating = isAnimating
-    stopAnimation()
+    val wasAnimating = isAnimationRequested
+    stopAnimationsUntilRespawn()
     if (wasAnimating) startAnimation()
   }
 
@@ -294,32 +269,32 @@ class CloudView : FrameLayout {
    * Starts moving clouds across the view.
    */
   fun startAnimation() {
+    isAnimationRequested = true
     if (isAnimating) return
-    forceStartAnimation()
+    if (isDrawn) forceStartAnimation()
   }
 
   private fun forceStartAnimation() {
     if (isDrawn) {
-      if (childCount == 0) {
-        Log.e(TAG, "forceStartAnimation: no clouds; nothing to animate")
+      if (imageViews.isEmpty()) {
+        Log.e(TAG, "forceStartAnimation: no cloud views; nothing to animate")
         return
       }
 
       animateClouds()
-      isAnimating = true
-
-    } else {
-      isPreDrawStartAnimationRequested = true
     }
   }
 
   private fun animateClouds() {
+    isAnimating = true
     for (image in imageViews) {
-      animateSingleCloud(image)
+      animateCloud(image)
     }
   }
 
-  private fun animateSingleCloud(cloud: ImageView) {
+  private fun animateCloud(cloud: ImageView) {
+    cloud.animation = null
+
     cloud.x = width.toFloat()
     cloud.y = height * Random.nextFloat()
 
@@ -341,7 +316,7 @@ class CloudView : FrameLayout {
 
       doOnEnd {
         if (imageViews.contains(cloud) && isAnimating) {
-          animateSingleCloud(cloud)
+          animateCloud(cloud)
         }
       }
 
@@ -352,9 +327,15 @@ class CloudView : FrameLayout {
   /**
    * Stops the clouds from animating and clears them from view.
    */
-  fun stopAnimation() {
+  fun stopAnimations() {
+    resetClouds(cloudCount)
+    isAnimationRequested = false
     isAnimating = false
-    setCloudCount(cloudCount)
+  }
+
+  private fun stopAnimationsUntilRespawn() {
+    resetClouds(cloudCount)
+    isAnimating = false
   }
 
   override fun onDraw(canvas: Canvas?) {
@@ -364,7 +345,7 @@ class CloudView : FrameLayout {
 
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    stopAnimation()
+    if (isDrawn) stopAnimationsUntilRespawn()
   }
 
   companion object {

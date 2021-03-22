@@ -77,9 +77,8 @@ class MainActivity : AppCompatActivity() {
         cloudCountView.text = "$progress"
       }
 
-      override fun onStartTrackingTouch(seekBar: SeekBar?) {
-        cloudView.stopAnimation()
-      }
+      override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
       override fun onStopTrackingTouch(seekBar: SeekBar?) {
         cloudView.setCloudCount(seekBar?.progress ?: 0)
       }
@@ -90,66 +89,64 @@ class MainActivity : AppCompatActivity() {
     }
 
     findViewById<Button>(R.id.stop_button).setOnClickListener {
-      cloudView.stopAnimation()
+      cloudView.stopAnimations()
     }
 
     findViewById<EditText>(R.id.pass_time_edit_text).addTextChangedListener(object : TextWatcher {
-      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-        cloudView.stopAnimation()
-      }
+      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
       override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-        val time = max(1, Integer.parseInt(s?.toString() ?: "1"))
+        val text =
+          if (s == null || s.toString() == "") cloudView.basePassTimeMs.toString()
+          else s.toString()
+
+        val time = max(1, Integer.parseInt(text))
         cloudView.setBasePassTime(time)
       }
 
-      override fun afterTextChanged(s: Editable?) {
-      }
+      override fun afterTextChanged(s: Editable?) {}
     })
 
-    findViewById<EditText>(R.id.pass_variance_edit_text).addTextChangedListener(object : TextWatcher {
-      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-        cloudView.stopAnimation()
-      }
+    findViewById<EditText>(R.id.pass_variance_edit_text).addTextChangedListener(object :
+      TextWatcher {
+      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
       override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-        val time = max(1, Integer.parseInt(s?.toString() ?: "1"))
+        val text =
+          if (s == null || s.toString() == "") "1"
+          else s.toString()
+
+        val time = max(1, Integer.parseInt(text))
         cloudView.setPassTimeVariance(time)
       }
 
-      override fun afterTextChanged(s: Editable?) {
-      }
+      override fun afterTextChanged(s: Editable?) {}
     })
 
-
-    findViewById<SeekBar>(R.id.min_size_seek_bar).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+    findViewById<SeekBar>(R.id.min_size_seek_bar).setOnSeekBarChangeListener(object :
+      SeekBar.OnSeekBarChangeListener {
       override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
         minSizeView.text = "$progress"
       }
 
-      override fun onStartTrackingTouch(seekBar: SeekBar?) {
-        cloudView.stopAnimation()
-      }
+      override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
       override fun onStopTrackingTouch(seekBar: SeekBar?) {
         cloudView.minCloudSize = seekBar?.progress ?: 0
       }
     })
 
-    findViewById<SeekBar>(R.id.max_size_seek_bar).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+    findViewById<SeekBar>(R.id.max_size_seek_bar).setOnSeekBarChangeListener(object :
+      SeekBar.OnSeekBarChangeListener {
       override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
         maxSizeView.text = "$progress"
       }
 
-      override fun onStartTrackingTouch(seekBar: SeekBar?) {
-//        cloudView.stopAnimation()
-      }
+      override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
       override fun onStopTrackingTouch(seekBar: SeekBar?) {
         cloudView.maxCloudSize = seekBar?.progress ?: 1
       }
     })
-  }
-
-  companion object {
-    private const val TAG = "GGG MainActivity"
   }
 }

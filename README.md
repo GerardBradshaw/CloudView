@@ -3,6 +3,7 @@ A View for Android that animates clouds moving past the screen.
 
 ## Screenshot
 Below is an app with the CloudView filling the whole screen. Note: animations are much smoother than they appear in the image.
+
 <img src="/art/example_app.gif?raw=true" width="400px">
 
 ## Dependency

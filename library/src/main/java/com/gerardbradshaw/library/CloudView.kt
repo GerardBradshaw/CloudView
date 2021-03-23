@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.Log
@@ -146,6 +147,7 @@ class CloudView : FrameLayout {
   var isFadeInEnabled = false
 
   init {
+    setBackgroundColor(Color.TRANSPARENT)
     viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
       override fun onGlobalLayout() {
         if (isDrawn) {

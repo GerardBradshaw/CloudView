@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CloudView">
+        <attr name="isAnimating" format="boolean"/>
+        <attr name="cloudImageSrc" format="reference"/>
+        <attr name="minCloudSize" format="dimension"/>
+        <attr name="maxCloudSize" format="dimension"/>
+        <attr name="cloudCount" format="integer"/>
+        <attr name="basePassTimeMs" format="integer"/>
+        <attr name="passTimeVarianceMs" format="integer"/>
+        <attr name="fadeInEnabled" format="boolean"/>
+        <attr name="skyColor" format="color"/>
+        <attr name="fadeInTimeMs" format="integer"/>
+    </declare-styleable>
+</resources>

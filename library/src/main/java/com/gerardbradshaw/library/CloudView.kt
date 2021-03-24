@@ -16,6 +16,7 @@ import android.widget.ImageView
 import androidx.core.animation.doOnEnd
 import androidx.core.animation.doOnStart
 import androidx.core.view.updateLayoutParams
+import java.lang.Exception
 import java.util.*
 import kotlin.math.max
 import kotlin.math.min
@@ -23,18 +24,71 @@ import kotlin.random.Random
 
 class CloudView : FrameLayout {
   constructor(context: Context) : super(context)
-  constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
-  constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
+
+  constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) {
+    if (attrs != null) saveAttrs(attrs)
+  }
+
+  constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
+    if (attrs != null) saveAttrs(attrs, defStyleAttr)
+  }
 
   private var isDrawn = false
   private var isAnimating = false
-  private var requestedSizeRange = 300..500
+  private var requestedSizeRange = DEFAULT_MINIMUM_CLOUD_SIZE..DEFAULT_MAXIMUM_CLOUD_SIZE
   private val imageViews = HashSet<ImageView>()
 
   private var imageResId: Int? = R.drawable.ic_cloud
   private var imageBitmap: Bitmap? = null
   private var imageDrawable: Drawable? = null
 
+
+  private fun saveAttrs(attrs: AttributeSet?, defStyleAttr: Int = 0) {
+    context.theme.obtainStyledAttributes(
+      attrs, R.styleable.CloudView, defStyleAttr, 0).apply {
+        try {
+          if (getBoolean(R.styleable.CloudView_isAnimating, true)) startAnimation()
+
+          getResourceId(R.styleable.CloudView_cloudImageSrc, -1).apply {
+            if (this != -1) imageResId = this
+          }
+
+          getDimensionPixelSize(R.styleable.CloudView_minCloudSize, DEFAULT_MINIMUM_CLOUD_SIZE).apply {
+            minCloudSize = this
+          }
+
+          getDimensionPixelSize(R.styleable.CloudView_maxCloudSize, DEFAULT_MAXIMUM_CLOUD_SIZE).apply {
+            maxCloudSize = this
+          }
+
+          getInteger(R.styleable.CloudView_cloudCount, DEFAULT_CLOUD_COUNT).apply {
+            cloudCount = this
+          }
+
+          getInteger(R.styleable.CloudView_basePassTimeMs, DEFAULT_PASS_TIME_MS).apply {
+            basePassTimeMs = this
+          }
+
+          getInteger(R.styleable.CloudView_passTimeVarianceMs, DEFAULT_PASS_TIME_VARIANCE_MS).apply{
+            passTimeVarianceMs = this
+          }
+
+          getBoolean(R.styleable.CloudView_fadeInEnabled, false).apply {
+            isFadeInEnabled = this
+          }
+
+          getInteger(R.styleable.CloudView_fadeInTimeMs, DEFAULT_FADE_IN_TIME_MS).apply {
+
+          }
+
+          getColor(R.styleable.CloudView_skyColor, Color.parseColor("#03A9F4")).apply {
+            setBackgroundColor(this)
+          }
+        } finally {
+          recycle()
+        }
+    }
+  }
 
   /**
    * Sets all values to their defaults. This is not necessary as a first step if no values have
@@ -47,8 +101,8 @@ class CloudView : FrameLayout {
     imageResId = R.drawable.ic_cloud
     imageBitmap = null
     imageDrawable = null
-    requestedSizeRange = 300..500
-    setCloudCount(10)
+    requestedSizeRange = DEFAULT_MINIMUM_CLOUD_SIZE..DEFAULT_MAXIMUM_CLOUD_SIZE
+    setCloudCount(DEFAULT_CLOUD_COUNT)
 
     if (wasAnimating) startAnimation()
   }
@@ -56,7 +110,7 @@ class CloudView : FrameLayout {
   /**
    * The maximum number of clouds seen in the view at once. Note clouds are redrawn on change.
    */
-  var cloudCount: Int = 10
+  var cloudCount: Int = DEFAULT_CLOUD_COUNT
     set(value) {
       field = value
       if (isDrawn) respawnClouds()
@@ -118,7 +172,7 @@ class CloudView : FrameLayout {
    * will pass the entire view in basePassTimeMs + [passTimeVarianceMs]. Note that clouds currently
    * crossing the view are not updated.
    */
-  var basePassTimeMs: Int = 10000
+  var basePassTimeMs: Int = DEFAULT_PASS_TIME_MS
     set(value) {
       if (value <= 0) throw IllegalArgumentException()
       else field = value
@@ -129,7 +183,7 @@ class CloudView : FrameLayout {
    * entire view. A variance of 0 means all clouds will move at the same speed. Note that clouds
    * currently crossing the view are not updated.
    */
-  var passTimeVarianceMs: Int = 2000
+  var passTimeVarianceMs: Int = DEFAULT_PASS_TIME_VARIANCE_MS
     set(value) {
       if (value < 0) throw IllegalArgumentException()
       else field = value
@@ -147,7 +201,6 @@ class CloudView : FrameLayout {
   var isFadeInEnabled = false
 
   init {
-    setBackgroundColor(Color.TRANSPARENT)
     viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
       override fun onGlobalLayout() {
         if (isDrawn) {
@@ -294,11 +347,31 @@ class CloudView : FrameLayout {
     }
   }
 
+  /**
+   * The time taken for a cloud to fade in when entering the view. Note that [isFadeInEnabled] must
+   * be true in order to enable this effect. Exceeding [basePassTimeMs] or [passTimeVarianceMs] may
+   * cause clouds to cross the entire view before fully fading in.
+   */
+  var fadeInTimeMs: Int = DEFAULT_FADE_IN_TIME_MS
+    set(value) {
+      if (value < 0) throw IllegalArgumentException()
+
+      field = value
+
+      if (value > basePassTimeMs) {
+        Log.i(TAG, "setFadeIntTimeMs(): Warning: Fade in time (${value} ms) exceeds base " +
+            "pass time (${basePassTimeMs} ms). Clouds may cross the entire view before fully " +
+            "fading in.")
+      }
+    }
+
   private fun animateCloud(cloud: ImageView) {
     cloud.animation = null
 
-    cloud.x = width.toFloat()
-    cloud.y = height * Random.nextFloat()
+    val cloudHeight = cloud.layoutParams.width.toFloat()
+
+    cloud.x = width.toFloat() - paddingRight
+    cloud.y = paddingTop + ((height - paddingBottom - paddingTop - cloudHeight) * Random.nextFloat())
 
     val cloudWidth = cloud.layoutParams.width.toFloat()
 
@@ -310,7 +383,7 @@ class CloudView : FrameLayout {
       doOnStart {
         if (isFadeInEnabled) {
           with(AlphaAnimation(0.0f, 1.0f)) {
-            this.duration = 1000
+            this.duration = fadeInTimeMs.toLong()
             cloud.startAnimation(this)
           }
         }
@@ -352,5 +425,11 @@ class CloudView : FrameLayout {
 
   companion object {
     private const val TAG = "GGG CloudView"
+    const val DEFAULT_PASS_TIME_MS = 10000
+    const val DEFAULT_PASS_TIME_VARIANCE_MS = 2000
+    const val DEFAULT_MINIMUM_CLOUD_SIZE = 300
+    const val DEFAULT_MAXIMUM_CLOUD_SIZE = 500
+    const val DEFAULT_CLOUD_COUNT = 10
+    const val DEFAULT_FADE_IN_TIME_MS = 1000
   }
 }

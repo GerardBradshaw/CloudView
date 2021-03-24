@@ -35,8 +35,6 @@ class MainActivity : AppCompatActivity() {
 
     minSizeView.text = cloudView.minCloudSize.toString()
     maxSizeView.text = cloudView.maxCloudSize.toString()
-
-    cloudView.startAnimation()
   }
 
   private fun locateViews() {
